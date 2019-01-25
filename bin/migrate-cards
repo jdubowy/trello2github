@@ -1,0 +1,206 @@
+#!/usr/bin/env python
+
+"""migrate-cards - migrates trello cards to github issues and project board cards
+
+Links:
+ - https://trello.com/app-key - log in and go to this url to get a trello api key
+ -
+"""
+
+__author__      = "Joel Dubowy"
+
+import logging
+import sys
+import traceback
+import urllib.request
+import urllib.parse
+import xmltodict
+from argparse import (
+    ArgumentParser, RawTextHelpFormatter, Action, ArgumentTypeError
+)
+
+import requests
+
+EXAMPLES = """
+Basic examples:
+
+ $ {script} --log-level DEBUG \\
+     --trello-api-key abc123 \\
+     -u johndoe -b 'My Board Name' -l 'My List Name' \\
+     --github-api-key 432dfg -o myorgname -r myreponame
+
+ $ {script} --log-level DEBUG \\
+     --trello-api-key abc123 --trello-auth-token zyx987 \\
+     -u johndoe -b 'My Board Name' -l 'My List Name' \\
+     --github-api-key 432dfg -o myorgname -r myreponame
+
+""".format(script=sys.argv[0])
+
+
+def parse_args():
+    parser = ArgumentParser(formatter_class=RawTextHelpFormatter)
+    parser.add_argument('--trello-api-key', help="Trello API key", required=True)
+    parser.add_argument('--trello-auth-token', help="Trello auth token; will get one if not specified")
+    parser.add_argument('-u', '--trello-username', help="e.g. 'johndoe'", required=True)
+    parser.add_argument('-b', '--trello-board', help="e.g. 'My Board Name'", required=True)
+    parser.add_argument('-l', '--trello-list', help="e.g. 'My List Name'", required=True)
+    parser.add_argument('--github-api-key', help="GitHub API key", required=True)
+    parser.add_argument('-o', '--github-owner', help="e.g. 'johndoe', 'myorgname'", required=True)
+    parser.add_argument('-r', '--github-repo', help="e.g. 'myreponame'", required=True)
+    parser.add_argument('--log-level', default="WARN",
+        help="Log level - 'DEBUG', 'INFO', 'WARN', 'ERROR'")
+
+    parser.epilog = EXAMPLES
+    return parser.parse_args()
+
+
+class TrelloError(RuntimeError):
+    pass
+
+class TrelloClient(object):
+
+    API_ROOT_URL = "https://api.trello.com/1/"
+
+    def __init__(self, api_key, trello_username, board_identifier, list_identifier, auth_token=None):
+        self._api_key = api_key
+        self._set_auth_token(auth_token)
+        board_id = self._find_matching_board(trello_username, board_identifier)
+        self._list_id = self._find_matching_list(board_id, list_identifier)
+
+    def __del__(self):
+        self._delete_auth_token()
+
+    def _request(self, method, path, **query_params):
+        url = self.API_ROOT_URL + path
+        params = dict(key=self._api_key,**query_params)
+        if self._auth_token:
+            params['token'] = self._auth_token,
+        resp = getattr(requests, method)(url=url, params=params)
+        return resp.json()
+
+    ## Auth Tokens
+
+    def _set_auth_token(self, auth_token):
+        if auth_token:
+            self._created_auth_token = False
+            self._auth_token = auth_token
+        else:
+            self._created_auth_token = True
+            self._auth_token = None
+            sys.stdout.write("Go to the following url\n")
+            sys.stdout.write(" https://trello.com/1/authorize?expiration=1day"
+                "&name=trello2github&scope=read,write&response_type=token"
+                "&key={}\n".format(self._api_key))
+            sys.stdout.write("Copy the token, paste it here, and press return.\n")
+            while not self._auth_token:
+                sys.stdout.write("Token: ")
+                self._auth_token = input().strip()
+
+    def _delete_auth_token(self):
+        if self._created_auth_token and self._auth_token:
+            self._request('delete', 'tokens/{}/'.format(self._auth_token))
+
+    ## Boards, lists, and cards
+
+    def _find_matching_board(self, trello_username, board_identifier):
+        boards_json = self._request('get', 'members/{}/boards'.format(trello_username))
+        for b in boards_json:
+            if board_identifier in (b['id'], b['name']):
+                return b['id']
+
+        raise TrelloError("Trello board '{}' not found".format(board_identifier))
+
+    def _find_matching_list(self, board_id, list_identifier):
+        lists_json = self._request('get','boards/{}/lists'.format(board_id))
+        for l in lists_json:
+            if list_identifier in (l['id'], l['name']):
+                return l['id']
+
+        raise TrelloError("Trello list '{}' not found".format(list_identifier))
+
+    def get_cards(self):
+        return self._request('get', 'lists/{}/cards/open'.format(self._list_id))
+
+    def archive_card(self, card_id, github_issue_url):
+        logging.debug("Archiving Trello card %s", card_id)
+        # TODO:
+        #   - post comment on trello card that it was migrated to GH, with GH link
+        #   - archive card from Trello
+
+
+class GitHubClient(object):
+
+    def __init__(self, api_key, owner, repo_name):
+        self._api_key = api_key
+        self._owner = owner
+        self._repo_name = repo_name
+
+    def post_issue(self, name, description):
+        logging.debug("Posting GitHub issue %s", name)
+        #/repos/:owner/:repo/issues
+        # TODO:
+        #    - prompt user to see if they want to migrate the card (showing all
+        #      text that will be transfered) include options yes, no, quit (exit)
+        #    - if yes:
+        #     - prompt to confirm or edit issue title
+        #     - prompt to confirm or edit issue description
+        #     - post issue to GH
+        #     - post card to GH board (if necessary)
+        #     - move issue to last on project board
+        #     - return url
+
+
+def migrate(args):
+    trello_client = TrelloClient(args.trello_api_key, args.trello_username,
+        args.trello_board, args.trello_list, auth_token=args.trello_auth_token)
+    github_client = GitHubClient(args.github_api_key, args.github_owner, args.github_repo)
+
+    # TODO: check if repo has project board; if not, prompt user to create one
+    #    (either manually or via API)
+
+    for trello_card in trello_client.get_cards():
+        if trello_card['badges']['attachments'] > 0:
+            sys.stdout.write("The following card has attachments\n\n")
+            sys.stdout.write(trello_card['name'] + '\n\n')
+            sys.stdout.write("Choose one of the following:\n")
+            sys.stdout.write("  s) skip\n")
+            sys.stdout.write("  m) migrate without attachments\n")
+            sys.stdout.write("  q) quit\n")
+            x = None
+            while x not in ('s', 'm', 'q'):
+                sys.stdout.write("[smq]: ")
+                x = input().strip()
+
+            if x == 'q':
+                sys.exit(0)
+            elif x == 's':
+                continue
+
+        try:
+            issue_url = github_client.post_issue(trello_card['name'], trello_card['desc'])
+            trello_client.archive_card(trello_card['id'], issue_url)
+        except Exception as e:
+            sys.stdout.write("Error migrating card \n")
+            sys.stdout.write(trello_card['url'] + "\n")
+            sys.stdout.write("Press <return> to continue")
+            input()
+
+
+def main():
+    args  = parse_args()
+
+    logging.basicConfig(level=getattr(logging, args.log_level))
+    for k, v in args.__dict__.items():
+        logging.debug('%s: %s', k, v)
+
+    try:
+        migrate(args)
+
+    except Exception as e:
+        logging.error("*** ERROR: %s", e)
+        logging.debug(traceback.format_exc())
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
