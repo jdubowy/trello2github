@@ -12,11 +12,8 @@ __author__      = "Joel Dubowy"
 import logging
 import sys
 import traceback
-import urllib.request
-import urllib.parse
-import xmltodict
 from argparse import (
-    ArgumentParser, RawTextHelpFormatter, Action, ArgumentTypeError
+    ArgumentParser, RawTextHelpFormatter
 )
 
 import requests
