@@ -23,6 +23,7 @@ class GitHubClient(object):
         self._repo_name = repo_name
         self._set_access_token(access_token)
         self._set_project()
+        self._set_project_column()
 
     def __del__(self):
         self._delete_access_token()
@@ -62,31 +63,37 @@ class GitHubClient(object):
 
     ## Project
 
-    def _get_projects(self):
-        path = 'repos/{}/{}/projects'.format(self._owner, self._repo_name)
-        headers = {"Accept": "application/vnd.github.inertia-preview+json"}
-        projects_json = self._request('get', path, headers=headers)
-        return [{k: p[k] for k in ('id', 'url', 'html_url', 'name')} for p in projects_json]
 
-    def _set_project(self):
-        projects = self._get_projects()
-        if not projects:
-            logging.error("*** No projects associated with {} repo".format(self._repo_name))
+    def _select_item(self, resource_type, path):
+        headers = {"Accept": "application/vnd.github.inertia-preview+json"}
+        json_list = self._request('get', path, headers=headers)
+        if not json_list:
+            logging.error("*** No {} associated with {} repo".format(
+                resource_type, self._repo_name))
             logging.error("*** Create a project and rerun this script")
             sys.exit(1)
-        elif len(projects) == 1:
-            self._project_id = projects[0]['id']
+
+        l = [{k: p[k] for k in ('id', 'url', 'html_url', 'name')} for p in json_list]
+        if len(projects) == 1:
+            return projects[0]['id'], projects[0]['name']
         else:
-            prompt = "Pick a project"
+            prompt = "Pick a {}".format(resource_type)
             options = [(i, e['name']) for i, e in enumerate(projects)] + [('q','quit (exit)')]
             x = int(multiple_choice(prompt, options))
-            self._project_id = projects[x]['id']
+            return projects[x]['id'], projects[x]['name']
+
+    def _set_project(self):
+        self._project_id, self._project_name = self._select_item('project',
+            'repos/{}/{}/projects'.format(self._owner, self._repo_name))
+
+    def _set_project_column(self):
+        self._columns_id, self._column_name = self._select_item('project column'
+            '/projects/:project_id/columns'.format(self._project_id))
 
 
     ## Issues
 
     def post_issue(self, title, body):
-        logging.debug("Posting GitHub issue %s", title)
         while True:
             prompt = ("Would you like to post the following issue to Github\n\n"
                 "   " +  title + "\n\n   " + (body or ' (no body) '))
@@ -100,15 +107,22 @@ class GitHubClient(object):
             if x == 'n':
                 return False
             elif x == 'y':
+                logging.debug("Posting GitHub issue %s", title)
                 path = 'repos/{}/{}/issues'.format(self._owner, self._repo_name)
                 data = {"title": title, "body": body}
-                resp_json = self._request('post', path, data=data)
+                new_issue = self._request('post', path, data=data)
 
-                # TODO:
-                #   - post card to GH board (if necessary)
-                #   - move issue to last on project board
+                logging.debug("Adding project card")
+                path "/projects/columns/{}/cards".format(self._columns_id)
+                data = {"content_id": new_issue['id'], "content_type": "Issue"}
+                new_card = self._request('post', path, data=data)
 
-                return resp_json['html_url']
+                logging.debug("Moving card to end of board")
+                path = "/projects/columns/cards/{}/moves".format(new_card['id'])
+                data = {"position": "bottom"}
+                new_card = self._request('post', path, data=data)
+
+                return new_issue['html_url']
 
             # else, edit and loop through again
             sys.stdout.write(" Title: ")
