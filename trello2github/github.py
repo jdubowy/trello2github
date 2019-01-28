@@ -21,6 +21,7 @@ class GitHubClient(object):
     def __init__(self, owner, repo_name, access_token=None):
         self._owner = owner
         self._repo_name = repo_name
+        self._repo_name_stripper = re.compile("(?i)^\w*{}\w*:".format(self._repo_name))
         self._set_access_token(access_token)
         self._set_project()
         self._set_project_column()
@@ -94,6 +95,8 @@ class GitHubClient(object):
     ## Issues
 
     def post_issue(self, title, body):
+        title = self._repo_name_stripper.sub("", title)
+
         while True:
             prompt = ("Would you like to post the following issue to Github\n\n"
                 "   " +  title + "\n\n   " + (body or ' (no body) '))
