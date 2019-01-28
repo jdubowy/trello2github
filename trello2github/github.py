@@ -1,4 +1,7 @@
 import logging
+import sys
+
+from .prompts import multiple_choice
 
 class GitHubClient(object):
 
