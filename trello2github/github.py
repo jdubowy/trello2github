@@ -1,3 +1,5 @@
+import logging
+
 class GitHubClient(object):
 
     def __init__(self, api_key, owner, repo_name):

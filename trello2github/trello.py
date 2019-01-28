@@ -1,3 +1,6 @@
+import sys
+import logging
+
 import requests
 
 class TrelloError(RuntimeError):
