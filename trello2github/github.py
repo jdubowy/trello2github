@@ -72,14 +72,12 @@ class GitHubClient(object):
             logging.error("*** Create a project and rerun this script")
             sys.exit(1)
         elif len(projects) == 1:
-            self._board_id = projects[0]['id']
+            self._project_id = projects[0]['id']
         else:
             prompt = "Pick a project"
             options = [(i, e['name']) for i, e in enumerate(projects)] + [('q','quit (exit)')]
-            x = multiple_choice(prompt, options)
-            if x == 'q':
-                sys.stdout.write("\nGood Bye\n")
-                sys.exit(0)
+            x = int(multiple_choice(prompt, options))
+            self._project_id = projects[x]['id']
 
 
     ## Issues
