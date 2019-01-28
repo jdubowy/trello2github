@@ -25,6 +25,9 @@ class TrelloClient(object):
         if self._auth_token:
             params['token'] = self._auth_token,
         resp = getattr(requests, method)(url=url, params=params)
+        if resp.status_code != 200:
+            raise TrelloError("Failed Trello request - {} {} {} -- {}".format(
+                method.upper(), path, query_params, resp.status_code))
         return resp.json()
 
     ## Auth Tokens
