@@ -28,12 +28,12 @@ Basic examples:
  $ {script} --log-level DEBUG \\
      --trello-api-key abc123 \\
      -u johndoe -b 'My Board Name' -l 'My List Name' \\
-     --github-api-key 432dfg -o myorgname -r myreponame
+     -o myorgname -r myreponame
 
  $ {script} --log-level DEBUG \\
      --trello-api-key abc123 --trello-auth-token zyx987 \\
      -u johndoe -b 'My Board Name' -l 'My List Name' \\
-     --github-api-key 432dfg -o myorgname -r myreponame
+     --github-access-token 458fje -o myorgname -r myreponame
 
 """.format(script=sys.argv[0])
 
@@ -45,7 +45,7 @@ def parse_args():
     parser.add_argument('-u', '--trello-username', help="e.g. 'johndoe'", required=True)
     parser.add_argument('-b', '--trello-board', help="e.g. 'My Board Name'", required=True)
     parser.add_argument('-l', '--trello-list', help="e.g. 'My List Name'", required=True)
-    parser.add_argument('--github-api-key', help="GitHub API key", required=True)
+    parser.add_argument('--github-access-token', help="GitHub accces token; will get one if not specified")
     parser.add_argument('-o', '--github-owner', help="e.g. 'johndoe', 'myorgname'", required=True)
     parser.add_argument('-r', '--github-repo', help="e.g. 'myreponame'", required=True)
     parser.add_argument('--log-level', default="WARN",
@@ -58,7 +58,9 @@ def parse_args():
 def migrate(args):
     trello_client = TrelloClient(args.trello_api_key, args.trello_username,
         args.trello_board, args.trello_list, auth_token=args.trello_auth_token)
-    github_client = GitHubClient(args.github_api_key, args.github_owner, args.github_repo)
+    github_client = GitHubClient(args.github_owner,
+        args.github_repo, access_token=args.github_access_token)
+
 
     # TODO: check if repo has project board; if not, prompt user to create one
     #    (either manually or via API)
@@ -69,7 +71,7 @@ def migrate(args):
                 (('s', 'skip'), ('m', 'migrate without attachments'), ('q', 'quit')))
 
             if x == 'q':
-                logging.info("Good Bye")
+                sys.stdout.write("\nGood Bye\n")
                 sys.exit(0)
             elif x == 's':
                 continue

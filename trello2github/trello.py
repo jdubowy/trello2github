@@ -1,3 +1,8 @@
+"""
+TODO:
+ - Create base client class to DRY up code between trello and github clients
+"""
+
 import sys
 import logging
 
@@ -10,7 +15,8 @@ class TrelloClient(object):
 
     API_ROOT_URL = "https://api.trello.com/1/"
 
-    def __init__(self, api_key, trello_username, board_identifier, list_identifier, auth_token=None):
+    def __init__(self, api_key, trello_username, board_identifier,
+            list_identifier, auth_token=None):
         self._api_key = api_key
         self._set_auth_token(auth_token)
         board_id = self._find_matching_board(trello_username, board_identifier)
