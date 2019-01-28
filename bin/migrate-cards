@@ -76,10 +76,12 @@ def migrate(args):
         try:
             issue_url = github_client.post_issue(trello_card['name'], trello_card['desc'])
             trello_client.archive_card(trello_card['id'], issue_url)
+
         except Exception as e:
-            sys.stdout.write("Error migrating card \n")
-            sys.stdout.write(trello_card['url'] + "\n")
-            sys.stdout.write("Press <return> to continue")
+            logging.debug(traceback.format_exc())
+            logging.error("Error migrating card")
+            logging.error(trello_card['url'])
+            sys.stdout.write("\nPress <return> to continue\n")
             input()
 
 
