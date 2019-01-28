@@ -69,6 +69,7 @@ def migrate(args):
                 (('s', 'skip'), ('m', 'migrate without attachments'), ('q', 'quit')))
 
             if x == 'q':
+                logging.info("Good Bye")
                 sys.exit(0)
             elif x == 's':
                 continue
