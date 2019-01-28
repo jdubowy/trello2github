@@ -68,12 +68,9 @@ def migrate(args):
     for trello_card in trello_client.get_cards():
         if trello_card['badges']['attachments'] > 0:
             x = multiple_choice("The following card has attachments\n\n" + trello_card['name'],
-                (('s', 'skip'), ('m', 'migrate without attachments'), ('q', 'quit')))
+                (('s', 'skip'), ('m', 'migrate without attachments')))
 
-            if x == 'q':
-                sys.stdout.write("\nGood Bye\n")
-                sys.exit(0)
-            elif x == 's':
+            if x == 's':
                 continue
 
         try:

@@ -92,15 +92,11 @@ class GitHubClient(object):
             options = (
                 ('y', 'yes (post as is)'),
                 ('n', 'no'),
-                ('e', 'edit'),
-                ('q', 'quit (exit)')
+                ('e', 'edit')
             )
             x = multiple_choice(prompt, options)
 
-            if x == 'q':
-                sys.stdout.write("\nGood Bye\n")
-                sys.exit(0)
-            elif x == 'n':
+            if x == 'n':
                 return False
             elif x == 'y':
                 path = 'repos/{}/{}/issues'.format(self._owner, self._repo_name)

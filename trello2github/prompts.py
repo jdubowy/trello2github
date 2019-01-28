@@ -1,6 +1,7 @@
 import sys
 
 def multiple_choice(prompt, options):
+    options.append(('q', 'quit (exit)'))
     sys.stdout.write('\n' + prompt + '\n\n')
     sys.stdout.write("Choose one of the following:\n")
     for letter, desc in options:
@@ -11,5 +12,9 @@ def multiple_choice(prompt, options):
     while x not in option_entries:
         sys.stdout.write("[smq]: ")
         x = input().strip()
+
+    if x == 'q':
+        sys.stdout.write("\nGood Bye\n")
+        sys.exit(0)
 
     return x
