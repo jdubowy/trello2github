@@ -75,7 +75,10 @@ def migrate(args):
 
         try:
             issue_url = github_client.post_issue(trello_card['name'], trello_card['desc'])
-            trello_client.archive_card(trello_card['id'], issue_url)
+            if issue_url:
+                trello_client.archive_card(trello_card['id'], issue_url)
+            else:
+                logging.info("Leaving card in trello")
 
         except Exception as e:
             logging.debug(traceback.format_exc())
