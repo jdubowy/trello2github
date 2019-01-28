@@ -1,6 +1,7 @@
 import sys
 
 def multiple_choice(prompt, options):
+    options = list(options)
     options.append(('q', 'quit (exit)'))
     sys.stdout.write('\n' + prompt + '\n\n')
     sys.stdout.write("Choose one of the following:\n")

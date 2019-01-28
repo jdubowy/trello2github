@@ -3,6 +3,7 @@ TODO:
  - Create base client class to DRY up code between trello and github clients
 """
 
+import json
 import logging
 import sys
 
@@ -26,10 +27,12 @@ class GitHubClient(object):
     def __del__(self):
         self._delete_access_token()
 
-    def _request(self, method, path, headers={}, **params):
+    def _request(self, method, path, headers={}, params={}, data=None):
         url = self.API_ROOT_URL + path
         params = dict(access_token=self._access_token, **params)
-        resp = getattr(requests, method)(url=url, headers=headers, params=params)
+        data = data and json.dumps(data)
+        resp = getattr(requests, method)(url=url, headers=headers,
+            params=params, data=data)
         if resp.status_code < 200 or resp.status_code >= 300:
             raise GitHubError("Failed GitHub request - {} {} {} -- {}".format(
                 method.upper(), path, params, resp.status_code))
@@ -87,25 +90,25 @@ class GitHubClient(object):
         while True:
             prompt = ("Would you like to post the following issue to Github\n\n"
                 "   " +  title + "\n\n   " + (body or ' (no body) '))
-            options = (
+            options = [
                 ('y', 'yes (post as is)'),
                 ('n', 'no'),
                 ('e', 'edit')
-            )
+            ]
             x = multiple_choice(prompt, options)
 
             if x == 'n':
                 return False
             elif x == 'y':
                 path = 'repos/{}/{}/issues'.format(self._owner, self._repo_name)
-                params = {"title": title, "body": body}
-                resp_json = self._request('post', path, **params)
-                import pdb;pdb.set_trace()
+                data = {"title": title, "body": body}
+                resp_json = self._request('post', path, data=data)
+
                 # TODO:
                 #   - post card to GH board (if necessary)
                 #   - move issue to last on project board
 
-                return resp_json['url']
+                return resp_json['html_url']
 
             # else, edit and loop through again
             sys.stdout.write(" Title: ")

@@ -68,7 +68,7 @@ def migrate(args):
     for trello_card in trello_client.get_cards():
         if trello_card['badges']['attachments'] > 0:
             x = multiple_choice("The following card has attachments\n\n" + trello_card['name'],
-                (('s', 'skip'), ('m', 'migrate without attachments')))
+                [('s', 'skip'), ('m', 'migrate without attachments')])
 
             if x == 's':
                 continue
@@ -82,11 +82,10 @@ def migrate(args):
 
         except Exception as e:
             logging.debug(traceback.format_exc())
-            logging.error("Error migrating card")
-            logging.error(trello_card['url'])
-            sys.stdout.write("\nPress <return> to continue\n")
-            input()
-
+            logging.error("Error migrating card %s", trello_card['name'])
+            multiple_choice("Failed to migrate card " + trello_card['name'],
+                [('s', 'skip')])
+            # don't need to do anything.
 
 def main():
     args  = parse_args()
