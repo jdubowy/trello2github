@@ -27,7 +27,7 @@ class BaseApiClient(object, metaclass=abc.ABCMeta):
         resp = getattr(requests, method)(url=url, headers=headers,
             params=params, data=data)
         if resp.status_code < 200 or resp.status_code >= 300:
-            raise ApiClientError("Failed {} request - {} {} {} -- {}".format(
-                self.__class__.__name__, method.upper(), path, params,
-                resp.status_code))
+            raise ApiClientError("Failed {} request - {} {} {} {} {} -- {}".format(
+                self.__class__.__name__, method.upper(), path, params, data,
+                headers, resp.status_code))
         return resp.json()
