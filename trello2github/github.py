@@ -5,6 +5,7 @@ TODO:
 
 import json
 import logging
+import re
 import sys
 
 import requests
@@ -65,7 +66,7 @@ class GitHubClient(object):
     ## Project
 
 
-    def _select_item(self, resource_type, path):
+    def _select_resource(self, resource_type, path):
         headers = {"Accept": "application/vnd.github.inertia-preview+json"}
         json_list = self._request('get', path, headers=headers)
         if not json_list:
@@ -74,22 +75,25 @@ class GitHubClient(object):
             logging.error("*** Create a project and rerun this script")
             sys.exit(1)
 
-        l = [{k: p[k] for k in ('id', 'url', 'html_url', 'name')} for p in json_list]
-        if len(projects) == 1:
-            return projects[0]['id'], projects[0]['name']
+        resources = [{
+            k: p.get(k) for k in ('id', 'url', 'html_url', 'name')
+        } for p in json_list]
+
+        if len(resources) == 1:
+            return resources[0]['id'], resources[0]['name']
         else:
             prompt = "Pick a {}".format(resource_type)
-            options = [(i, e['name']) for i, e in enumerate(projects)] + [('q','quit (exit)')]
+            options = [(i, e['name']) for i, e in enumerate(resources)]
             x = int(multiple_choice(prompt, options))
-            return projects[x]['id'], projects[x]['name']
+            return resources[x]['id'], resources[x]['name']
 
     def _set_project(self):
-        self._project_id, self._project_name = self._select_item('project',
+        self._project_id, self._project_name = self._select_resource('project',
             'repos/{}/{}/projects'.format(self._owner, self._repo_name))
 
     def _set_project_column(self):
-        self._columns_id, self._column_name = self._select_item('project column'
-            '/projects/:project_id/columns'.format(self._project_id))
+        self._columns_id, self._column_name = self._select_resource('project column',
+            'projects/{}/columns'.format(self._project_id))
 
 
     ## Issues
@@ -115,15 +119,21 @@ class GitHubClient(object):
                 data = {"title": title, "body": body}
                 new_issue = self._request('post', path, data=data)
 
-                logging.debug("Adding project card")
-                path "/projects/columns/{}/cards".format(self._columns_id)
-                data = {"content_id": new_issue['id'], "content_type": "Issue"}
-                new_card = self._request('post', path, data=data)
+                try:
+                    logging.debug("Adding project card")
+                    headers = {"Accept": "application/vnd.github.inertia-preview+json"}
+                    path = "projects/columns/{}/cards".format(self._columns_id)
+                    data = {"content_id": new_issue['id'], "content_type": "Issue"}
+                    new_card = self._request('post', path, headers=headers, data=data)
 
-                logging.debug("Moving card to end of board")
-                path = "/projects/columns/cards/{}/moves".format(new_card['id'])
-                data = {"position": "bottom"}
-                new_card = self._request('post', path, data=data)
+                    logging.debug("Moving card to end of board")
+                    path = "projects/columns/cards/{}/moves".format(new_card['id'])
+                    data = {"position": "bottom"}
+                    new_card = self._request('post', path, headers=headers, data=data)
+
+                except:
+                    logging.error("Failed to add issue %s to project board",
+                        new_card['name'])
 
                 return new_issue['html_url']
 
