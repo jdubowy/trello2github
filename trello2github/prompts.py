@@ -9,9 +9,9 @@ def multiple_choice(prompt, options):
         sys.stdout.write("  {}) {}\n".format(letter, desc))
 
     x = None
-    option_entries = [o[0] for o in options]
+    option_entries = [str(o[0]) for o in options]
     while x not in option_entries:
-        sys.stdout.write("[smq]: ")
+        sys.stdout.write("[{}]: ".format(','.join(option_entries)))
         x = input().strip()
 
     if x == 'q':
