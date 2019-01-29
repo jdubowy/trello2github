@@ -48,6 +48,9 @@ def parse_args():
     parser.add_argument('--github-access-token', help="GitHub accces token; will get one if not specified")
     parser.add_argument('-o', '--github-owner', help="e.g. 'johndoe', 'myorgname'", required=True)
     parser.add_argument('-r', '--github-repo', help="e.g. 'myreponame'", required=True)
+    parser.add_argument('-p', '--title-prefix-to-remove',
+        help="prefix to remove from trello card titles",
+        dest="title_prefixes_to_remove", action="append", default=[])
     parser.add_argument('--log-level', default="WARN",
         help="Log level - 'DEBUG', 'INFO', 'WARN', 'ERROR'")
 
@@ -58,8 +61,9 @@ def parse_args():
 def migrate(args):
     trello_client = TrelloClient(args.trello_api_key, args.trello_username,
         args.trello_board, args.trello_list, auth_token=args.trello_auth_token)
-    github_client = GitHubClient(args.github_owner,
-        args.github_repo, access_token=args.github_access_token)
+    github_client = GitHubClient(args.github_owner, args.github_repo,
+        access_token=args.github_access_token,
+        title_prefixes_to_remove=args.title_prefixes_to_remove)
 
     for trello_card in reversed(trello_client.get_cards()):
         if trello_card['badges']['attachments'] > 0:

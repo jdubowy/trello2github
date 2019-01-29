@@ -13,10 +13,16 @@ class EmptyResourceList(RuntimeError):
 
 class GitHubClient(BaseApiClient):
 
-    def __init__(self, owner, repo_name, access_token=None):
+    def __init__(self, owner, repo_name, access_token=None,
+            title_prefixes_to_remove=[]):
         self._owner = owner
         self._repo_name = repo_name
-        self._repo_name_stripper = re.compile("(?i)^\w*{}\w*:".format(self._repo_name))
+        self._repo_name_strippers = [
+            re.compile("(?i)^\w*{}\w*:\w*".format(self._repo_name))
+        ]
+        for p in title_prefixes_to_remove:
+            self._repo_name_strippers.append(
+                re.compile("(?i)^\w*{}\w*".format(p)))
         self._set_access_token(access_token)
         self._set_project()
         self._set_project_column()
@@ -119,7 +125,8 @@ class GitHubClient(BaseApiClient):
         TODO: Implement better means of communicating to caller - something
             other than returning status, url tuple
         """
-        title = self._repo_name_stripper.sub("", title).strip()
+        for s in self._repo_name_strippers:
+            title = s.sub("", title).strip()
 
         while True:
             prompt = ("Would you like to post the following issue to Github\n\n"
