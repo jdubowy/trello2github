@@ -71,7 +71,26 @@ class TrelloClient(BaseApiClient):
         raise TrelloError("Trello list '{}' not found".format(list_identifier))
 
     def get_cards(self):
-        return self._request('get', 'lists/{}/cards/open'.format(self._list_id))
+        cards = []
+        cards_json =  self._request('get', 'lists/{}/cards/open'.format(self._list_id))
+        for card_json in cards_json:
+            cards.append({
+                "name": card_json["name"],
+                "desc": card_json["desc"],
+                "id": card_json["id"]
+                "has_attachments": card_json['badges']['attachments'] > 0
+            })
+            if card_json.get("idChecklists"):
+                checklists_json = self._request('get',
+                    'cards/{}/checklists'.format(card_json['id']))
+                cards[-1]["checklists"] = []
+                for cl_json in checklists_json:
+                    cards[-1]["checklists"].append({
+                        "name": cl_json["name"],
+                        "items": [{k: i[k] for k in ('name', 'state')} for i in cl_json["checkItems"]]
+                    })
+
+        return cards
 
     def archive_card(self, card_id, github_issue_url):
         if github_issue_url:

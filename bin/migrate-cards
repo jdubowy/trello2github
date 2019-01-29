@@ -66,7 +66,7 @@ def migrate(args):
         title_prefixes_to_remove=args.title_prefixes_to_remove)
 
     for trello_card in reversed(trello_client.get_cards()):
-        if trello_card['badges']['attachments'] > 0:
+        if trello_card['has_attachments']:
             x = multiple_choice("The following card has attachments\n\n" + trello_card['name'],
                 [('s', 'skip'), ('m', 'migrate without attachments')])
 
@@ -74,7 +74,8 @@ def migrate(args):
                 continue
 
         try:
-            status, issue_url = github_client.post_issue(trello_card['name'], trello_card['desc'])
+            status, issue_url = github_client.post_issue(trello_card['name'],
+                trello_card['desc'], trello_card['checklists'])
             if issue_url or (status == "Archive"):
                 trello_client.archive_card(trello_card['id'], issue_url)
             else:

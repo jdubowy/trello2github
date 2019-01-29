@@ -120,13 +120,29 @@ class GitHubClient(BaseApiClient):
 
     ## Issues
 
-    def post_issue(self, title, body):
+    def _create_checklists_markdown(self, checklists):
+        if not checklists:
+            return ""
+
+        text = "## Checklists\n"
+        for cl in checklists:
+            text += "\n### {}\n\n".format(cl["name"])
+            for i in cl['items']:
+                text += "- [{}] {}\n".format(
+                    'x' if i['state'] == 'complete' else ' ', i['name'])
+        text += '\n----\n\n'
+        return text
+
+    def post_issue(self, title, body, checklists):
         """
         TODO: Implement better means of communicating to caller - something
             other than returning status, url tuple
         """
         for s in self._repo_name_strippers:
             title = s.sub("", title).strip()
+
+        # put checklists at beginning of body
+        body = self._create_checklists_markdown(checklists) +  body
 
         while True:
             prompt = ("Would you like to post the following issue to Github\n\n"
