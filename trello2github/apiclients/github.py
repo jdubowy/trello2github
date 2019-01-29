@@ -5,7 +5,7 @@ import sys
 
 from . import BaseApiClient
 
-from ..prompts import multiple_choice
+from ..prompts import multiple_choice, edit_in_text_editor
 
 
 class GitHubClient(BaseApiClient):
@@ -135,7 +135,5 @@ class GitHubClient(BaseApiClient):
                 return "Posted", new_issue['html_url']
 
             # else, edit and loop through again
-            sys.stdout.write(" Title: ")
-            title = input().strip()
-            sys.stdout.write(" Body: ")
-            body = input().strip()
+            title = edit_in_text_editor("title", title)
+            body = edit_in_text_editor("body", body)
