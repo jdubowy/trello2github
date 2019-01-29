@@ -21,6 +21,7 @@ class BaseApiClient(object, metaclass=abc.ABCMeta):
         pass
 
     def _request(self, method, path, headers={}, params={}, data=None):
+        path = path.lstrip('/')
         url = self.api_root_url + path
         params = dict(self.base_params, **params)
         data = data and json.dumps(data)
