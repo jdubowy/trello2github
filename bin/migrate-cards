@@ -18,8 +18,8 @@ from argparse import (
 )
 
 sys.path.insert(0, os.path.abspath(os.path.join(sys.path[0], '../')))
-from trello2github.trello import TrelloClient
-from trello2github.github import GitHubClient
+from trello2github.apiclients.trello import TrelloClient
+from trello2github.apiclients.github import GitHubClient
 from trello2github.prompts import multiple_choice
 
 EXAMPLES = """

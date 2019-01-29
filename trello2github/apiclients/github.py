@@ -10,7 +10,7 @@ import sys
 
 import requests
 
-from .prompts import multiple_choice
+from ..prompts import multiple_choice
 
 class GitHubError(RuntimeError):
     pass
