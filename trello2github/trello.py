@@ -80,10 +80,11 @@ class TrelloClient(object):
         return self._request('get', 'lists/{}/cards/open'.format(self._list_id))
 
     def archive_card(self, card_id, github_issue_url):
-        logging.debug("Commenting on Trello card %s", card_id)
-        path = 'cards/{}/actions/comments'.format(card_id)
-        text = "Migrated to GitHub issue {}".format(github_issue_url)
-        self._request('post', path, text=text)
+        if github_issue_url:
+            logging.debug("Commenting on Trello card %s", card_id)
+            path = 'cards/{}/actions/comments'.format(card_id)
+            text = "Migrated to GitHub issue {}".format(github_issue_url)
+            self._request('post', path, text=text)
 
         logging.debug("Archiving Trello card %s", card_id)
         path = 'cards/{}/closed'.format(card_id)

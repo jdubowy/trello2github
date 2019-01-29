@@ -99,23 +99,33 @@ class GitHubClient(object):
     ## Issues
 
     def post_issue(self, title, body):
-        title = self._repo_name_stripper.sub("", title)
+        """
+        TODO: Implement better means of communicating to caller - something
+            other than returning status, url tuple
+        """
+        title = self._repo_name_stripper.sub("", title).strip()
 
         while True:
             prompt = ("Would you like to post the following issue to Github\n\n"
-                "   " +  title + "\n\n   " + (body or ' (no body) '))
+                + ("*" * 80) + "\n" + "* Title\n\n" + title + "\n\n"
+                + ("*" * 80) + "\n" + "* Body\n\n" + (body or ' (no body) ')
+                + "\n\n" + ("*" * 80))
             options = [
-                ('y', 'yes (post as is)'),
-                ('n', 'no'),
-                ('e', 'edit')
+                ('p', 'Post issue is'),
+                ('e', 'Edit'),
+                ('s', 'Skip'),
+                ('a', 'Archive trello card without posting issue')
             ]
             x = multiple_choice(prompt, options)
 
-            if x == 'n':
-                return False
-            elif x == 'y':
+            if x == 's':
+                return "Skipped", None
+            elif x == 'a':
+                return "Archive", None
+            elif x == 'p':
                 logging.debug("Posting GitHub issue %s", title)
                 path = 'repos/{}/{}/issues'.format(self._owner, self._repo_name)
+                body = body + "\n\nProgramatically migrated from Trello"
                 data = {"title": title, "body": body}
                 new_issue = self._request('post', path, data=data)
 
@@ -135,7 +145,7 @@ class GitHubClient(object):
                     logging.error("Failed to add issue %s to project board",
                         new_card['name'])
 
-                return new_issue['html_url']
+                return "Posted", new_issue['html_url']
 
             # else, edit and loop through again
             sys.stdout.write(" Title: ")
