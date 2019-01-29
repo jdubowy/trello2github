@@ -28,7 +28,8 @@ def edit_in_text_editor(field_name, value):
         fp.write(value.encode() + b'\n')
         fp.flush()
 
-        os.system('emacs {}'.format(fp.name))
+        editor = os.environ.get('EDITOR') or 'vim'
+        os.system('{} {}'.format(editor, fp.name))
 
         fp.seek(0)
         lines = []
