@@ -132,7 +132,7 @@ class GitHubClient(BaseApiClient):
 
                     logging.debug("Moving card to end of board")
                     path = "projects/columns/cards/{}/moves".format(new_card['id'])
-                    data = {"position": "bottom"}
+                    data = {"position": "top"}
                     new_card = self._request('post', path, headers=headers, data=data)
 
                 except:

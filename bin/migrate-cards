@@ -61,11 +61,7 @@ def migrate(args):
     github_client = GitHubClient(args.github_owner,
         args.github_repo, access_token=args.github_access_token)
 
-
-    # TODO: check if repo has project board; if not, prompt user to create one
-    #    (either manually or via API)
-
-    for trello_card in trello_client.get_cards():
+    for trello_card in reversed(trello_client.get_cards()):
         if trello_card['badges']['attachments'] > 0:
             x = multiple_choice("The following card has attachments\n\n" + trello_card['name'],
                 [('s', 'skip'), ('m', 'migrate without attachments')])
