@@ -8,6 +8,9 @@ from . import BaseApiClient
 from ..prompts import multiple_choice, edit_in_text_editor
 
 
+class EmptyResourceList(RuntimeError):
+    pass
+
 class GitHubClient(BaseApiClient):
 
     def __init__(self, owner, repo_name, access_token=None):
@@ -28,6 +31,11 @@ class GitHubClient(BaseApiClient):
     @property
     def base_params(self):
         return {"access_token": self._access_token}
+
+    def _request(self, method, path, headers={}, params={}, data=None):
+        headers["Accept"] = "application/vnd.github.inertia-preview+json"
+        return super()._request(method, path, headers=headers, params=params,
+            data=data)
 
     ## Access Token
 
@@ -54,13 +62,12 @@ class GitHubClient(BaseApiClient):
     ## Project
 
     def _select_resource(self, resource_type, path):
-        headers = {"Accept": "application/vnd.github.inertia-preview+json"}
-        json_list = self._request('get', path, headers=headers)
+        json_list = self._request('get', path)
         if not json_list:
-            logging.error("*** No {} associated with {} repo".format(
-                resource_type, self._repo_name))
-            logging.error("*** Create a project and rerun this script")
-            sys.exit(1)
+            # logging.error("*** No {} associated with {} repo".format(
+            #     resource_type, self._repo_name))
+            # logging.error("*** Create a project and rerun this script")
+            raise EmptyResourceList()
 
         resources = [{
             k: p.get(k) for k in ('id', 'url', 'html_url', 'name')
@@ -74,13 +81,35 @@ class GitHubClient(BaseApiClient):
             x = int(multiple_choice(prompt, options))
             return resources[x]['id'], resources[x]['name']
 
+    @property
+    def project_api_path(self):
+        return 'repos/{}/{}/projects'.format(self._owner, self._repo_name)
+
+    def _create_project(self):
+        path = self.project_api_path
+        data = {"name": "{} TODOs".format(self._repo_name)}
+        r = self._request('post', path, data=data)
+        return r['id'], r['name']
+
     def _set_project(self):
-        self._project_id, self._project_name = self._select_resource('project',
-            'repos/{}/{}/projects'.format(self._owner, self._repo_name))
+        try:
+            self._project_id, self._project_name = self._select_resource(
+                'project', self.project_api_path)
+        except EmptyResourceList as e:
+            self._project_id, self._project_name = self._create_project()
+
+    def _create_project_column(self):
+        path = "projects/{}/columns".format(self._project_id)
+        data = {"name": "To do"}
+        r = self._request('post', path, data=data)
+        return r['id'], r['name']
 
     def _set_project_column(self):
-        self._columns_id, self._column_name = self._select_resource('project column',
-            'projects/{}/columns'.format(self._project_id))
+        try:
+            self._columns_id, self._column_name = self._select_resource('project column',
+                'projects/{}/columns'.format(self._project_id))
+        except EmptyResourceList as e:
+            self._columns_id, self._column_name= self._create_project_column()
 
 
     ## Issues
@@ -118,15 +147,14 @@ class GitHubClient(BaseApiClient):
 
                 try:
                     logging.debug("Adding project card")
-                    headers = {"Accept": "application/vnd.github.inertia-preview+json"}
                     path = "projects/columns/{}/cards".format(self._columns_id)
                     data = {"content_id": new_issue['id'], "content_type": "Issue"}
-                    new_card = self._request('post', path, headers=headers, data=data)
+                    new_card = self._request('post', path, data=data)
 
-                    logging.debug("Moving card to end of board")
+                    logging.debug("Moving card to top of board")
                     path = "projects/columns/cards/{}/moves".format(new_card['id'])
                     data = {"position": "top"}
-                    new_card = self._request('post', path, headers=headers, data=data)
+                    new_card = self._request('post', path, data=data)
 
                 except:
                     logging.error("Failed to add issue %s to project board",
