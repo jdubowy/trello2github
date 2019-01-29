@@ -39,9 +39,9 @@ class GitHubClient(BaseApiClient):
             self._created_access_token = True
             self._access_token = None
             sys.stdout.write("Go to the following url\n")
-            sys.stdout.write(" https://github.com/settings/tokens/new")
-            sys.stdout.write("Generate a new access token, copy it, "
-                "paste it here, and press return.\n")
+            sys.stdout.write(" https://github.com/settings/tokens/new\n")
+            sys.stdout.write("Generate a new access token with repo privileges,"
+                " copy it, paste it here, and press return.\n")
             while not self._access_token:
                 sys.stdout.write("Token: ")
                 self._access_token = input().strip()
