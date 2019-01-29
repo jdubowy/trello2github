@@ -4,6 +4,10 @@ import logging
 
 import requests
 
+
+class ApiClientError(RuntimeError):
+    pass
+
 class BaseApiClient(object, metaclass=abc.ABCMeta):
 
     @property
@@ -23,7 +27,7 @@ class BaseApiClient(object, metaclass=abc.ABCMeta):
         resp = getattr(requests, method)(url=url, headers=headers,
             params=params, data=data)
         if resp.status_code < 200 or resp.status_code >= 300:
-            raise GitHubError("Failed {} request - {} {} {} -- {}".format(
+            raise ApiClientError("Failed {} request - {} {} {} -- {}".format(
                 self.__class__.__name__, method.upper(), path, params,
                 resp.status_code))
         return resp.json()

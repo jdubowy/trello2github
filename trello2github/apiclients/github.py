@@ -12,8 +12,6 @@ from . import BaseApiClient
 
 from ..prompts import multiple_choice
 
-class GitHubError(RuntimeError):
-    pass
 
 class GitHubClient(BaseApiClient):
 
