@@ -8,16 +8,14 @@ import logging
 import re
 import sys
 
-import requests
+from . import BaseApiClient
 
 from ..prompts import multiple_choice
 
 class GitHubError(RuntimeError):
     pass
 
-class GitHubClient(object):
-
-    API_ROOT_URL = "https://api.github.com/"
+class GitHubClient(BaseApiClient):
 
     def __init__(self, owner, repo_name, access_token=None):
         self._owner = owner
@@ -30,16 +28,13 @@ class GitHubClient(object):
     def __del__(self):
         self._delete_access_token()
 
-    def _request(self, method, path, headers={}, params={}, data=None):
-        url = self.API_ROOT_URL + path
-        params = dict(access_token=self._access_token, **params)
-        data = data and json.dumps(data)
-        resp = getattr(requests, method)(url=url, headers=headers,
-            params=params, data=data)
-        if resp.status_code < 200 or resp.status_code >= 300:
-            raise GitHubError("Failed GitHub request - {} {} {} -- {}".format(
-                method.upper(), path, params, resp.status_code))
-        return resp.json()
+    @property
+    def api_root_url(self):
+        return "https://api.github.com/"
+
+    @property
+    def base_params(self):
+        return {"access_token": self._access_token}
 
     ## Access Token
 
@@ -64,7 +59,6 @@ class GitHubClient(object):
             pass
 
     ## Project
-
 
     def _select_resource(self, resource_type, path):
         headers = {"Accept": "application/vnd.github.inertia-preview+json"}

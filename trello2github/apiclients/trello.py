@@ -6,14 +6,12 @@ TODO:
 import sys
 import logging
 
-import requests
+from . import BaseApiClient
 
 class TrelloError(RuntimeError):
     pass
 
-class TrelloClient(object):
-
-    API_ROOT_URL = "https://api.trello.com/1/"
+class TrelloClient(BaseApiClient):
 
     def __init__(self, api_key, trello_username, board_identifier,
             list_identifier, auth_token=None):
@@ -25,16 +23,16 @@ class TrelloClient(object):
     def __del__(self):
         self._delete_auth_token()
 
-    def _request(self, method, path, **query_params):
-        url = self.API_ROOT_URL + path
-        params = dict(key=self._api_key,**query_params)
+    @property
+    def api_root_url(self):
+        return "https://api.trello.com/1/"
+
+    @property
+    def base_params(self):
+        params = {"key": self._api_key}
         if self._auth_token:
             params['token'] = self._auth_token,
-        resp = getattr(requests, method)(url=url, params=params)
-        if resp.status_code != 200:
-            raise TrelloError("Failed Trello request - {} {} {} -- {}".format(
-                method.upper(), path, query_params, resp.status_code))
-        return resp.json()
+        return params
 
     ## Auth Tokens
 
@@ -83,9 +81,12 @@ class TrelloClient(object):
         if github_issue_url:
             logging.debug("Commenting on Trello card %s", card_id)
             path = 'cards/{}/actions/comments'.format(card_id)
-            text = "Migrated to GitHub issue {}".format(github_issue_url)
-            self._request('post', path, text=text)
+            params = {
+                "text": "Migrated to GitHub issue {}".format(github_issue_url)
+            }
+            self._request('post', path, params=params)
 
         logging.debug("Archiving Trello card %s", card_id)
         path = 'cards/{}/closed'.format(card_id)
-        return self._request('put', path, value='true')
+        params = {"value": 'true'}
+        return self._request('put', path, params=params)
