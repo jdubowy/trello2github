@@ -1,8 +1,3 @@
-"""
-TODO:
- - Create base client class to DRY up code between trello and github clients
-"""
-
 import json
 import logging
 import re

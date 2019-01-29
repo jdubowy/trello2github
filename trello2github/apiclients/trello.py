@@ -1,12 +1,8 @@
-"""
-TODO:
- - Create base client class to DRY up code between trello and github clients
-"""
-
 import sys
 import logging
 
 from . import BaseApiClient
+
 
 class TrelloError(RuntimeError):
     pass
