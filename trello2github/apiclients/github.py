@@ -112,7 +112,7 @@ class GitHubClient(BaseApiClient):
             elif x == 'p':
                 logging.debug("Posting GitHub issue %s", title)
                 path = 'repos/{}/{}/issues'.format(self._owner, self._repo_name)
-                body = body + "\n\nProgramatically migrated from Trello"
+                body = body + "\n\n***(Programatically migrated from Trello)***"
                 data = {"title": title, "body": body}
                 new_issue = self._request('post', path, data=data)
 
