@@ -76,12 +76,12 @@ def migrate(args):
                 trello_card['id'])
 
         try:
-            status, issue_url = github_client.post_issue(trello_card['name'],
+            status, public_url = github_client.post(trello_card['name'],
                 trello_card['desc'], trello_card.get('checklists'),
                 trello_card.get('attachments'))
 
-            if issue_url or (status == "Archive"):
-                trello_client.archive_card(trello_card['id'], issue_url)
+            if public_url or (status == "Archive"):
+                trello_client.archive_card(trello_card['id'], public_url)
             else:
                 logging.info("Leaving card in trello")
 

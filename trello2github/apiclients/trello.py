@@ -101,12 +101,12 @@ class TrelloClient(BaseApiClient):
         return [{"url": a_json["url"]} for a_json in attachments_json]
 
 
-    def archive_card(self, card_id, github_issue_url):
-        if github_issue_url:
+    def archive_card(self, card_id, github_reference):
+        if github_reference:
             logging.debug("Commenting on Trello card %s", card_id)
             path = 'cards/{}/actions/comments'.format(card_id)
             params = {
-                "text": "Migrated to GitHub issue {}".format(github_issue_url)
+                "text": "Migrated to GitHub - {}".format(github_reference)
             }
             self._request('post', path, params=params)
 

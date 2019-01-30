@@ -5,7 +5,7 @@ import sys
 
 from . import BaseApiClient
 
-from ..prompts import single_line, multiple_choice, edit_in_text_editor
+from ..prompts import single_line, single_line_with_confirmation, multiple_choice, edit_in_text_editor
 
 
 class EmptyResourceListError(RuntimeError):
@@ -97,10 +97,15 @@ class GitHubClient(BaseApiClient):
         else:
             return 'orgs/{}/projects'.format(self._owner)
 
+    @property
+    def project_public_reference(self):
+        return "{} - https://github.com/orgs/{}/projects/".format(
+            self._project_name, self._owner)
+
     def _create_project(self):
         path = self.project_api_path
         name = ("{} TODOs".format(self._repo_name) if self._repo_name
-            else single_line("New project Name"))
+            else single_line_with_confirmation("New project Name"))
         data = {"name": name}
         r = self._request('post', path, data=data)
         return r['id'], r['name']
@@ -151,7 +156,36 @@ class GitHubClient(BaseApiClient):
 
         return text
 
-    def post_issue(self, title, body, checklists, attachments):
+    def _post_issue(self, title, body):
+        if self._repo_name:
+            logging.debug("Posting GitHub issue %s", title)
+            path = 'repos/{}/{}/issues'.format(self._owner, self._repo_name)
+            body = body + "\n\n***(Programatically migrated from Trello)***"
+            data = {"title": title, "body": body}
+            return self._request('post', path, data=data)
+
+    def _post_card(self, new_issue, title, body):
+        new_card = None
+        try:
+            logging.debug("Adding project card")
+            path = "projects/columns/{}/cards".format(self._columns_id)
+            if new_issue:
+                data = {"content_id": new_issue['id'], "content_type": "Issue"}
+            else:
+                data = {"note": title + ('\n\n----\n\n' + body if body else '')}
+            new_card = self._request('post', path, data=data)
+
+            logging.debug("Moving card to top of board")
+            path = "projects/columns/cards/{}/moves".format(new_card['id'])
+            data = {"position": "top"}
+            self._request('post', path, data=data)
+
+        except:
+            logging.error("Failed to add card %s to project board", title)
+
+        return new_card
+
+    def post(self, title, body, checklists, attachments):
         """
         TODO: Implement better means of communicating to caller - something
             other than returning status, url tuple
@@ -162,14 +196,16 @@ class GitHubClient(BaseApiClient):
         # put checklists at beginning of body
         body = (self._create_checklists_markdown(checklists) +  body +
             self._create_attachments_markdown(attachments))
+        post_type = ("issue" if self._repo_name else "project card")
 
         while True:
-            prompt = ("Would you like to post the following issue to Github\n\n"
+            prompt = ("Would you like to post the following "
+                + post_type + " to Github\n\n"
                 + ("*" * 80) + "\n" + "* Title\n\n" + title + "\n\n"
                 + ("*" * 80) + "\n" + "* Body\n\n" + (body or ' (no body) ')
                 + "\n\n" + ("*" * 80) + "\n")
             options = [
-                ('p', 'Post issue as is'),
+                ('p', 'Post as is'),
                 ('e', 'Edit'),
                 ('s', 'Skip'),
                 ('a', 'Archive trello card without posting issue')
@@ -181,28 +217,18 @@ class GitHubClient(BaseApiClient):
             elif x == 'a':
                 return "Archive", None
             elif x == 'p':
-                logging.debug("Posting GitHub issue %s", title)
-                path = 'repos/{}/{}/issues'.format(self._owner, self._repo_name)
-                body = body + "\n\n***(Programatically migrated from Trello)***"
-                data = {"title": title, "body": body}
-                new_issue = self._request('post', path, data=data)
+                new_issue = self._post_issue(title, body)
+                new_card = self._post_card(new_issue, title, body)
 
-                try:
-                    logging.debug("Adding project card")
-                    path = "projects/columns/{}/cards".format(self._columns_id)
-                    data = {"content_id": new_issue['id'], "content_type": "Issue"}
-                    new_card = self._request('post', path, data=data)
+                # new_issue will only be undefined if we're deling
+                # with a repo-less organizational project
+                # new_card will be undefined if there was a failure
+                if not new_issue and not new_card:
+                    return "Failed", None
 
-                    logging.debug("Moving card to top of board")
-                    path = "projects/columns/cards/{}/moves".format(new_card['id'])
-                    data = {"position": "top"}
-                    new_card = self._request('post', path, data=data)
-
-                except:
-                    logging.error("Failed to add issue %s to project board",
-                        new_card['name'])
-
-                return "Posted", new_issue['html_url']
+                ref = (new_issue and new_issue['html_url']) or (
+                    self.project_public_reference)
+                return "Posted", ref
 
             # else, edit and loop through again
             title = edit_in_text_editor("title", title)
