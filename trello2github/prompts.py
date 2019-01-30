@@ -40,7 +40,3 @@ def edit_in_text_editor(field_name, value):
                 lines.append(l)
 
         return "\n".join(lines)
-
-if __name__ == "__main__":
-    val = edit_in_text_editor("foo", "bar")
-    print("New val is {}:\n".format(val))
