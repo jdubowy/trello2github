@@ -5,7 +5,7 @@ import sys
 
 from . import BaseApiClient
 
-from ..prompts import multiple_choice, edit_in_text_editor
+from ..prompts import single_line, singemultiple_choice, edit_in_text_editor
 
 
 class EmptyResourceList(RuntimeError):
@@ -51,14 +51,11 @@ class GitHubClient(BaseApiClient):
             self._access_token = access_token
         else:
             self._created_access_token = True
-            self._access_token = None
             sys.stdout.write("Go to the following url\n")
             sys.stdout.write(" https://github.com/settings/tokens/new\n")
             sys.stdout.write("Generate a new access token with repo privileges,"
                 " copy it, paste it here, and press return.\n")
-            while not self._access_token:
-                sys.stdout.write("Token: ")
-                self._access_token = input().strip()
+            self._access_token = single_line("Token")
 
     def _delete_access_token(self):
         if self._created_access_token and self._access_token:

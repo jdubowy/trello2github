@@ -2,17 +2,17 @@ import os
 import sys
 import tempfile
 
-def _input(prompt, options=None):
+def single_line(prompt, options=None):
     x = None
     while not x or (options and x not in options):
         sys.stdout.write(prompt + ': ')
         x = input().strip()
     return x
 
-def single_line(prompt):
+def single_line_with_confirmation(prompt):
     while True:
-        line = _input(prompt)
-        yn = _input('Continue with "{}"? [yn]'.format(line),
+        line = single_line(prompt)
+        yn = single_line('Continue with "{}"? [yn]'.format(line),
             options=('y', 'Y', 'n', 'N'))
         if yn.lower() == 'y':
             return line
@@ -26,7 +26,7 @@ def multiple_choice(prompt, options):
         sys.stdout.write("  {}) {}\n".format(letter, desc))
 
     option_entries = [str(o[0]) for o in options]
-    x = _input("[{}]".format(','.join(option_entries)), options=option_entries)
+    x = single_line("[{}]".format(','.join(option_entries)), options=option_entries)
 
     if x == 'q':
         sys.stdout.write("\nGood Bye\n")
@@ -54,7 +54,7 @@ def edit_in_text_editor(field_name, value):
         return "\n".join(lines)
 
 # if __name__ == "__main__":
-#     v = single_line("Enter your name")
+#     v = single_line_with_confirmation("Enter your name")
 #     print("Your name is {}".format(v))
 
 #     v = multiple_choice("Pick your favorite", [('f','foo'),('b','bar')])

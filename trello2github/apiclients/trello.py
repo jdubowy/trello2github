@@ -3,6 +3,8 @@ import logging
 
 from . import BaseApiClient
 
+from ..prompts import single_line
+
 
 class TrelloError(RuntimeError):
     pass
@@ -38,15 +40,12 @@ class TrelloClient(BaseApiClient):
             self._auth_token = auth_token
         else:
             self._created_auth_token = True
-            self._auth_token = None
             sys.stdout.write("Go to the following url\n")
             sys.stdout.write(" https://trello.com/1/authorize?expiration=1day"
                 "&name=trello2github&scope=read,write&response_type=token"
                 "&key={}\n".format(self._api_key))
             sys.stdout.write("Copy the token, paste it here, and press return.\n")
-            while not self._auth_token:
-                sys.stdout.write("Token: ")
-                self._auth_token = input().strip()
+            self._auth_token = single_line("Token")
 
     def _delete_auth_token(self):
         if self._created_auth_token and self._auth_token:
