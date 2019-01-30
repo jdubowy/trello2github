@@ -25,15 +25,15 @@ from trello2github.prompts import multiple_choice
 EXAMPLES = """
 Basic examples:
 
- $ {script} --log-level DEBUG \\
-     --trello-api-key abc123 \\
-     -u johndoe -b 'My Board Name' -l 'My List Name' \\
-     -o myorgname -r myreponame
+ $ {script} --log-level DEBUG --trello-api-key abc123 -u johndev \\
+     -b 'My Board Name' -l 'Foo App TODOs' -o myorgname -r foo-app-repo
 
- $ {script} --log-level DEBUG \\
-     --trello-api-key abc123 --trello-auth-token zyx987 \\
-     -u johndoe -b 'My Board Name' -l 'My List Name' \\
-     --github-access-token 458fje -o myorgname -r myreponame
+ $ {script} --log-level DEBUG --trello-api-key abc123 \\
+     -u johndev -b 'My Board Name' -l 'Project Foo Bar TODOs' -o myorgname
+
+ $ {script} --log-level DEBUG --trello-api-key abc123 \\
+     --trello-auth-token zyx987 -u johndev -b 'My Board Name' \\
+     -l 'My List Name' --github-access-token 458fje -o myorgname -r myreponame
 
 """.format(script=sys.argv[0])
 
@@ -42,12 +42,13 @@ def parse_args():
     parser = ArgumentParser(formatter_class=RawTextHelpFormatter)
     parser.add_argument('--trello-api-key', help="Trello API key", required=True)
     parser.add_argument('--trello-auth-token', help="Trello auth token; will get one if not specified")
-    parser.add_argument('-u', '--trello-username', help="e.g. 'johndoe'", required=True)
+    parser.add_argument('-u', '--trello-username', help="e.g. 'johndev'", required=True)
     parser.add_argument('-b', '--trello-board', help="e.g. 'My Board Name'", required=True)
     parser.add_argument('-l', '--trello-list', help="e.g. 'My List Name'", required=True)
     parser.add_argument('--github-access-token', help="GitHub accces token; will get one if not specified")
-    parser.add_argument('-o', '--github-owner', help="e.g. 'johndoe', 'myorgname'", required=True)
-    parser.add_argument('-r', '--github-repo', help="e.g. 'myreponame'", required=True)
+    parser.add_argument('-o', '--github-owner', help="e.g. 'johndev', 'myorgname'", required=True)
+    parser.add_argument('-r', '--github-repo', help="If not specified, a "
+        "project card will be created without an associated issue")
     parser.add_argument('-p', '--title-prefix-to-remove',
         help="prefix to remove from trello card titles",
         dest="title_prefixes_to_remove", action="append", default=[])
@@ -61,7 +62,7 @@ def parse_args():
 def migrate(args):
     trello_client = TrelloClient(args.trello_api_key, args.trello_username,
         args.trello_board, args.trello_list, auth_token=args.trello_auth_token)
-    github_client = GitHubClient(args.github_owner, args.github_repo,
+    github_client = GitHubClient(args.github_owner, repo_name=args.github_repo,
         access_token=args.github_access_token,
         title_prefixes_to_remove=args.title_prefixes_to_remove)
 

@@ -5,24 +5,30 @@ import sys
 
 from . import BaseApiClient
 
-from ..prompts import single_line, singemultiple_choice, edit_in_text_editor
+from ..prompts import single_line, multiple_choice, edit_in_text_editor
 
 
-class EmptyResourceList(RuntimeError):
+class EmptyResourceListError(RuntimeError):
+    pass
+
+class NoAppropriateResources(RuntimeError):
     pass
 
 class GitHubClient(BaseApiClient):
 
-    def __init__(self, owner, repo_name, access_token=None,
+    def __init__(self, owner, repo_name=None, access_token=None,
             title_prefixes_to_remove=[]):
         self._owner = owner
         self._repo_name = repo_name
-        self._repo_name_strippers = [
-            re.compile("(?i)^\w*{}\w*:\w*".format(self._repo_name))
-        ]
+
+        self._title_prefix_strippers = []
+        if self._repo_name:
+            self._title_prefix_strippers.append(
+                re.compile("(?i)^\w*{}\w*:\w*".format(self._repo_name)))
         for p in title_prefixes_to_remove:
-            self._repo_name_strippers.append(
+            self._title_prefix_strippers.append(
                 re.compile("(?i)^\w*{}\w*".format(p)))
+
         self._set_access_token(access_token)
         self._set_project()
         self._set_project_column()
@@ -70,27 +76,32 @@ class GitHubClient(BaseApiClient):
             # logging.error("*** No {} associated with {} repo".format(
             #     resource_type, self._repo_name))
             # logging.error("*** Create a project and rerun this script")
-            raise EmptyResourceList()
+            raise EmptyResourceListError()
 
         resources = [{
             k: p.get(k) for k in ('id', 'url', 'html_url', 'name')
         } for p in json_list]
 
-        if len(resources) == 1:
-            return resources[0]['id'], resources[0]['name']
-        else:
-            prompt = "Pick a {}".format(resource_type)
-            options = [(i, e['name']) for i, e in enumerate(resources)]
-            x = int(multiple_choice(prompt, options))
-            return resources[x]['id'], resources[x]['name']
+        prompt = "Pick a {}".format(resource_type)
+        options = [(i, e['name']) for i, e in enumerate(resources)]
+        options.append(('n', "Create a new {}".format(resource_type)))
+        x = int(multiple_choice(prompt, options))
+        if x == len(resources):
+            raise NoAppropriateResources()
+        return resources[x]['id'], resources[x]['name']
 
     @property
     def project_api_path(self):
-        return 'repos/{}/{}/projects'.format(self._owner, self._repo_name)
+        if self._repo_name:
+            return 'repos/{}/{}/projects'.format(self._owner, self._repo_name)
+        else:
+            return 'orgs/{}/projects'.format(self._owner)
 
     def _create_project(self):
         path = self.project_api_path
-        data = {"name": "{} TODOs".format(self._repo_name)}
+        name = ("{} TODOs".format(self._repo_name) if self._repo_name
+            else single_line("New project Name"))
+        data = {"name": name}
         r = self._request('post', path, data=data)
         return r['id'], r['name']
 
@@ -98,7 +109,7 @@ class GitHubClient(BaseApiClient):
         try:
             self._project_id, self._project_name = self._select_resource(
                 'project', self.project_api_path)
-        except EmptyResourceList as e:
+        except (EmptyResourceListError, NoAppropriateResources) as e:
             self._project_id, self._project_name = self._create_project()
 
     def _create_project_column(self):
@@ -111,7 +122,7 @@ class GitHubClient(BaseApiClient):
         try:
             self._columns_id, self._column_name = self._select_resource('project column',
                 'projects/{}/columns'.format(self._project_id))
-        except EmptyResourceList as e:
+        except (EmptyResourceListError, NoAppropriateResources) as e:
             self._columns_id, self._column_name= self._create_project_column()
 
 
@@ -145,7 +156,7 @@ class GitHubClient(BaseApiClient):
         TODO: Implement better means of communicating to caller - something
             other than returning status, url tuple
         """
-        for s in self._repo_name_strippers:
+        for s in self._title_prefix_strippers:
             title = s.sub("", title).strip()
 
         # put checklists at beginning of body
@@ -158,7 +169,7 @@ class GitHubClient(BaseApiClient):
                 + ("*" * 80) + "\n" + "* Body\n\n" + (body or ' (no body) ')
                 + "\n\n" + ("*" * 80))
             options = [
-                ('p', 'Post issue is'),
+                ('p', 'Post issue as is'),
                 ('e', 'Edit'),
                 ('s', 'Skip'),
                 ('a', 'Archive trello card without posting issue')
