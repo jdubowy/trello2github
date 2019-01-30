@@ -2,19 +2,31 @@ import os
 import sys
 import tempfile
 
+def _input(prompt, options=None):
+    x = None
+    while not x or (options and x not in options):
+        sys.stdout.write(prompt + ': ')
+        x = input().strip()
+    return x
+
+def single_line(prompt):
+    while True:
+        line = _input(prompt)
+        yn = _input('Continue with "{}"? [yn]'.format(line),
+            options=('y', 'Y', 'n', 'N'))
+        if yn.lower() == 'y':
+            return line
+
 def multiple_choice(prompt, options):
     options = list(options)
     options.append(('q', 'quit (exit)'))
-    sys.stdout.write('\n' + prompt + '\n\n')
-    sys.stdout.write("Choose one of the following:\n")
+    prompt = prompt.rstrip('.')
+    sys.stdout.write(prompt +".  Choose one of the following:\n")
     for letter, desc in options:
         sys.stdout.write("  {}) {}\n".format(letter, desc))
 
-    x = None
     option_entries = [str(o[0]) for o in options]
-    while x not in option_entries:
-        sys.stdout.write("[{}]: ".format(','.join(option_entries)))
-        x = input().strip()
+    x = _input("[{}]".format(','.join(option_entries)), options=option_entries)
 
     if x == 'q':
         sys.stdout.write("\nGood Bye\n")
@@ -40,3 +52,10 @@ def edit_in_text_editor(field_name, value):
                 lines.append(l)
 
         return "\n".join(lines)
+
+# if __name__ == "__main__":
+#     v = single_line("Enter your name")
+#     print("Your name is {}".format(v))
+
+#     v = multiple_choice("Pick your favorite", [('f','foo'),('b','bar')])
+#     print("you chose {}".format(v))
