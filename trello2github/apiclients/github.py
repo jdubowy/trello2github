@@ -167,7 +167,7 @@ class GitHubClient(BaseApiClient):
             prompt = ("Would you like to post the following issue to Github\n\n"
                 + ("*" * 80) + "\n" + "* Title\n\n" + title + "\n\n"
                 + ("*" * 80) + "\n" + "* Body\n\n" + (body or ' (no body) ')
-                + "\n\n" + ("*" * 80))
+                + "\n\n" + ("*" * 80) + "\n")
             options = [
                 ('p', 'Post issue as is'),
                 ('e', 'Edit'),
