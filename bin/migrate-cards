@@ -67,15 +67,18 @@ def migrate(args):
 
     for trello_card in reversed(trello_client.get_cards()):
         if trello_card['has_attachments']:
-            x = multiple_choice("The following card has attachments\n\n" + trello_card['name'],
-                [('s', 'skip'), ('m', 'migrate without attachments')])
+            trello_card['attachments'] = trello_client.get_attachements(
+                trello_card['id'])
 
-            if x == 's':
-                continue
+        if trello_card['has_checklists']:
+            trello_card['checklists'] = trello_client.get_checklists(
+                trello_card['id'])
 
         try:
             status, issue_url = github_client.post_issue(trello_card['name'],
-                trello_card['desc'], trello_card['checklists'])
+                trello_card['desc'], trello_card.get('checklists'),
+                trello_card.get('attachments'))
+
             if issue_url or (status == "Archive"):
                 trello_client.archive_card(trello_card['id'], issue_url)
             else:

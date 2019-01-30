@@ -77,20 +77,30 @@ class TrelloClient(BaseApiClient):
             cards.append({
                 "name": card_json["name"],
                 "desc": card_json["desc"],
-                "id": card_json["id"]
-                "has_attachments": card_json['badges']['attachments'] > 0
+                "id": card_json["id"],
+                "has_attachments": card_json['badges']['attachments'] > 0,
+                "has_checklists": not not card_json.get("idChecklists")
             })
-            if card_json.get("idChecklists"):
-                checklists_json = self._request('get',
-                    'cards/{}/checklists'.format(card_json['id']))
-                cards[-1]["checklists"] = []
-                for cl_json in checklists_json:
-                    cards[-1]["checklists"].append({
-                        "name": cl_json["name"],
-                        "items": [{k: i[k] for k in ('name', 'state')} for i in cl_json["checkItems"]]
-                    })
-
         return cards
+
+    def get_checklists(self, card_id):
+        checklists = []
+        checklists_json = self._request('get',
+            'cards/{}/checklists'.format(card_id))
+        for cl_json in checklists_json:
+            checklists.append({
+                "name": cl_json["name"],
+                "items": sorted([{k: i[k] for k in ('name', 'state')}
+                    for i in cl_json["checkItems"]], key=lambda i: i['state'])
+            })
+
+        return checklists
+
+    def get_attachements(self, card_id):
+        attachments_json = self._request('get',
+            'cards/{}/attachments'.format(card_id))
+        return [{"url": a_json["url"]} for a_json in attachments_json]
+
 
     def archive_card(self, card_id, github_issue_url):
         if github_issue_url:

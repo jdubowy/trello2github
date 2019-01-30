@@ -133,7 +133,17 @@ class GitHubClient(BaseApiClient):
         text += '\n----\n\n'
         return text
 
-    def post_issue(self, title, body, checklists):
+    def _create_attachments_markdown(self, attachments):
+        if not attachments:
+            return ""
+
+        text = '\n\n----\n\n## Attachments\n\n'
+        for a in attachments:
+            text += "![{url}]({url})".format(url=a['url'])
+
+        return text
+
+    def post_issue(self, title, body, checklists, attachments):
         """
         TODO: Implement better means of communicating to caller - something
             other than returning status, url tuple
@@ -142,7 +152,8 @@ class GitHubClient(BaseApiClient):
             title = s.sub("", title).strip()
 
         # put checklists at beginning of body
-        body = self._create_checklists_markdown(checklists) +  body
+        body = (self._create_checklists_markdown(checklists) +  body +
+            self._create_attachments_markdown(attachments))
 
         while True:
             prompt = ("Would you like to post the following issue to Github\n\n"
