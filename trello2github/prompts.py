@@ -48,7 +48,7 @@ def edit_in_text_editor(field_name, value):
         fp.seek(0)
         lines = []
         for l in fp.readlines():
-            l = l.decode().strip()
+            l = l.decode().rstrip()
             # Accept empty lines after first non-empty line
             if not l.startswith("---- ") and (lines or l):
                 lines.append(l)
