@@ -21,7 +21,9 @@ def multiple_choice(prompt, options):
     options = list(options)
     options.append(('q', 'quit (exit)'))
     prompt = prompt.rstrip('.')
-    sys.stdout.write(prompt +".  Choose one of the following:\n")
+    if prompt and not prompt.endswith('\n'):
+        prompt += ".  "
+    sys.stdout.write(prompt + "Choose one of the following:\n")
     for letter, desc in options:
         sys.stdout.write("  {}) {}\n".format(letter, desc))
 
