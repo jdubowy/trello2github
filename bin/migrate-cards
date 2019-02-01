@@ -62,9 +62,11 @@ def parse_args():
 def migrate(args):
     trello_client = TrelloClient(args.trello_api_key, args.trello_username,
         args.trello_board, args.trello_list, auth_token=args.trello_auth_token)
+    title_prefixes_to_remove = (args.title_prefixes_to_remove
+        + [args.trello_list + ':'])
     github_client = GitHubClient(args.github_owner, repo_name=args.github_repo,
         access_token=args.github_access_token,
-        title_prefixes_to_remove=args.title_prefixes_to_remove)
+        title_prefixes_to_remove=title_prefixes_to_remove)
 
     for trello_card in reversed(trello_client.get_cards()):
         if trello_card['has_attachments']:
