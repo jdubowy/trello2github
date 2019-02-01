@@ -152,7 +152,8 @@ class GitHubClient(BaseApiClient):
 
         text = '\n\n----\n\n## Attachments\n\n'
         for a in attachments:
-            text += "![{url}]({url})".format(url=a['url'])
+            #text += " - ![{url}]({url})\n".format(url=a['url'])
+            text += " - {url}\n".format(url=a['url'])
 
         return text
 
